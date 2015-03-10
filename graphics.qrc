@@ -1,0 +1,9 @@
+<RCC>
+  <qresource prefix="icons">
+    <file>icons/sos_update.png</file>
+    <file>icons/sos_logo.png</file>
+    <file>icons/sos_window_icon.png</file>
+    <file>icons/sos_login.png</file>
+    <file>icons/sos_new_request.png</file>
+  </qresource>
+</RCC>

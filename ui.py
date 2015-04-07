@@ -199,6 +199,12 @@ class MainWindow(QtGui.QMainWindow):
         self.login.setIcon(QtGui.QIcon(":/icons/icons/sos_login.png"))
         self.header_layout.addWidget(self.login, 0, 4, 1, 1)
 
+        self.show_history = QtGui.QCheckBox(self.header_frame)
+        self.show_history.setText("Show Completed Orders")
+        self.show_history.setChecked(False)
+        self.show_history.setObjectName("show_history")
+        self.header_layout.addWidget(self.show_history, 2, 2, 4, 4)
+
         self.header_layout.setColumnStretch(1, 1)
         self.central_layout.addWidget(self.header_frame, 0, 0, 1, 2)
 
@@ -473,7 +479,7 @@ class NewRequest(QtGui.QDialog):
         self.need_by = QtGui.QDateTimeEdit(self)
         self.need_by.setObjectName("need_by")
         self.need_by.setCalendarPopup(True)
-        self.need_by.setDateTime(QtCore.QDateTime.currentDateTime())
+        self.need_by.setDateTime(QtCore.QDateTime.addDays(QtCore.QDateTime.currentDateTime(), 7))
         self.gridLayout.addWidget(self.need_by, 1, 1, 1, 1)
 
         self.buttonBox = QtGui.QDialogButtonBox(self)
@@ -498,3 +504,13 @@ class NewRequest(QtGui.QDialog):
         self.setMask(region)
         QtGui.QDialog.resizeEvent(self, resize_event)
         resize_event.accept()
+
+
+class CategoryLabel(QtGui.QLabel):
+    def __init__(self, parent=None, label=""):
+        QtGui.QLabel.__init__(self, parent)
+        self.setText(label)
+        font = QtGui.QFont()
+        font.setFamily("Source Code Pro Bold")
+        font.setPointSize(14)
+        self.setFont(font)

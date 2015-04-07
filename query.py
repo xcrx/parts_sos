@@ -34,6 +34,11 @@ get_request_status = ("SELECT `sos_request_status`.`id`, `sos_status`.`status`, 
 
 
 def query(data, args=None, db='qt_sql_default_connection'):
+    """
+    Runs and returns a query.
+
+    It takes the name of the query as an argument and finds it as a variable from up above
+    """
     qry = QtSql.QSqlQuery(db)
     try:
         data = getattr(sys.modules[__name__], data)

@@ -1,6 +1,10 @@
 __author__ = 'ryan'
 from PyQt4 import QtCore, QtGui
 
+'''
+Palette presets. Pulled from QtDesigner.
+'''
+
 
 def tan():
     palette = QtGui.QPalette()

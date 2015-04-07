@@ -10,10 +10,15 @@ from query import query
 
 sys.path.insert(0, os.path.split(__file__)[0])
 
+# Minutes to hours conversion
 hours = 3600
 
 
 def get_status_data(request_id):
+    """
+    Returns a list containing the status history for the request matching 'request_id'
+    The list if pre-formatted to be dumped right into the status combobox
+    """
     status_qry = query("get_request_status", [request_id])
     status = []
     if status_qry:
@@ -23,6 +28,11 @@ def get_status_data(request_id):
 
 
 def get_countdown(date_string):
+    """
+    Returns the time remaining until the need_by date.
+    time_left is the actual time remaining
+    countdown is the string that is displayed in the UI
+    """
     qt_date = QtCore.QDateTime.fromString(date_string, "MM/dd/yyyy hh:mmAP").toLocalTime()
     countdown = "Null"
     time_left = 0
@@ -34,6 +44,9 @@ def get_countdown(date_string):
 
 
 def get_popup_pos(main, popup):
+    """
+    Calculates and returns the position for popup windows so they show under the users mouse but still on the screen.
+    """
     pos = QtGui.QCursor.pos()
     window_pos = main.pos()
     rel_pos = pos - window_pos
@@ -48,6 +61,9 @@ def get_popup_pos(main, popup):
 
 
 def clear_layout(layout):
+    """
+    Clears all widgets off the supplied layout
+    """
     for i in reversed(range(layout.count())):
         item = layout.itemAt(i)
 
@@ -63,9 +79,13 @@ def clear_layout(layout):
 
 
 class Main(ui.MainWindow):
-
+    """
+    This is the main UI window.
+    It contains all the button functions and timers that are needed for basic function.
+    """
     def __init__(self):
         ui.MainWindow.__init__(self)
+        self.requests = None
 
         def connections():
             self.login.clicked.connect(self.login_widget)
@@ -75,9 +95,13 @@ class Main(ui.MainWindow):
 
         self.load_request_data()
         # self.setWindowState(QtCore.Qt.WindowFullScreen)
+        # self.setWindowFlags(self.windowFlags() | QtCore.Qt.WindowStaysOnTopHint)
         self.startTimer(10*1000)
 
     def login_widget(self):
+        """
+        Opens login popup and sets the timer to force the use to logout.
+        """
         login_form = ui.LoginForm(self)
         login_form.move(get_popup_pos(self, login_form))
         login_form.exec_()
@@ -91,6 +115,9 @@ class Main(ui.MainWindow):
             self.login_timer.start(1000)
 
     def new_request_widget(self):
+        """
+        Opens the new request popup. If the user isn't logged in, it opens the login popup first.
+        """
         if self.user_id == 0:
             self.login.click()
             if self.user_id == 0:
@@ -102,6 +129,9 @@ class Main(ui.MainWindow):
         new_request_form.exec_()
 
     def logout(self):
+        """
+        Logs out the current user
+        """
         self.login_timer.stop()
         self.user_id = 0
         self.username.setText("")
@@ -112,8 +142,16 @@ class Main(ui.MainWindow):
         self.login.clicked.connect(self.login_widget)
 
     def load_request_data(self):
+        """
+        Gets the requests from the database and displays them.
+
+        The requests are sorted by category and time
+
+        It also beeps if a new request is added
+        """
         clear_layout(self.request_layout)
         requests_qry = query("get_all_requests")
+        requests = []
         if requests_qry:
             ordered = []
             in_process = []
@@ -121,10 +159,13 @@ class Main(ui.MainWindow):
             on_hold = []
             no_stock = []
             misc = []
-            widgets = [ordered, in_process, delivered, on_hold, no_stock, misc]
+            received = []
+            widgets = {"On Order": ordered, "In Process": in_process, "Delivered": delivered, "On Hold": on_hold,
+                       "No Stock": no_stock, "Misc": misc, "Received": received}
 
             while requests_qry.next():
                 request_id = requests_qry.value(0)
+                requests.append(request_id)
                 status = get_status_data(request_id)
                 need_by = requests_qry.value(2)
                 time_left, countdown = get_countdown(need_by)
@@ -139,7 +180,7 @@ class Main(ui.MainWindow):
                 else:
                     palette = colors.blue()
 
-                if "Received" in status[0][0] or "Canceled" in status[0][0]:
+                if "Canceled" in status[0][0]:
                     pass
                 else:
                     request_form = ui.RequestForm(palette=palette)
@@ -166,12 +207,29 @@ class Main(ui.MainWindow):
                     elif "No Stock" in status[0][0]:
                         request_form.setPalette(colors.gray_text(request_form.palette()))
                         no_stock.append(request_form)
+                    elif "Received" in status[0][0]:
+                        request_form.setPalette(colors.gray_text(request_form.palette()))
+                        received.append(request_form)
                     else:
                         misc.append(request_form)
-            for cat in widgets:
-                for form in cat:
-                    self.request_layout.addWidget(form)
+
+            for cat in ("On Order", "In Process", "Delivered", "On Hold", "No Stock", "Misc", "Received"):
+                if widgets[cat].__len__() > 0:
+                    if cat != "Received" or self.show_history.isChecked():
+                        self.request_layout.addWidget(ui.CategoryLabel(self, cat))
+                        for form in widgets[cat]:
+                            self.request_layout.addWidget(form)
+
+            if self.requests != requests:
+                QtGui.QApplication.beep()
+            self.requests = requests
+
+        else:
+            self.close()
 
     def timerEvent(self, event):
+        """
+        Reload the request data after a specified amount of time.
+        """
         self.load_request_data()
         event.ignore()
